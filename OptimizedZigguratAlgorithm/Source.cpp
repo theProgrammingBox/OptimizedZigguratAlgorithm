@@ -76,8 +76,10 @@ float randomNormal(uint32_t& seed, const uint32_t kn[128], const float fn[128], 
         seed = (seed ^ (seed << 13));
         seed = (seed ^ (seed >> 17));
         seed = (seed ^ (seed << 5));
-        randomInt = -6281210 * uint32_t(x * x) + 0x3f800000;
+        /*randomInt = -6281210 * uint32_t(x * x) + 0x3f800000;
         if (fn[sevenBits] + (tempSeed + seed) * 2.32830643654e-10f * (fn[sevenBits - 1] - fn[sevenBits]) < *(float*)&randomInt)
+            return x;*/
+        if (fn[sevenBits] + (tempSeed + seed) * 2.32830643654e-10f * (fn[sevenBits - 1] - fn[sevenBits]) < exp(-0.5f * x * x))
             return x;
     }
 }
@@ -91,7 +93,7 @@ int main()
 
     randomNormalSetup(kn, fn, wn);
 
-    const uint32_t bins = 56;
+    const uint32_t bins = 42;
     const uint32_t samples = 1000000;
     const float scale = 1000.0f / samples;
     const float min = -3.0f;
