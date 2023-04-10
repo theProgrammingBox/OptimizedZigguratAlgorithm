@@ -99,10 +99,8 @@ int main()
     const float min = -3.0f;
     const float max = 3.0f;
     const float bin_width = (max - min) / bins;
-
-	// start timer
-	auto start = std::chrono::high_resolution_clock::now();
     
+	auto start = std::chrono::high_resolution_clock::now();
     uint32_t hist[bins];
     memset(hist, 0, sizeof(hist));
     for (uint32_t i = 0; i < samples; i++)
@@ -111,8 +109,6 @@ int main()
         if (bin < bins && bin >= 0)
             hist[bin]++;
     }
-    
-	// stop timer
 	auto stop = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 	printf("Time taken by function: %lld microseconds\n", duration.count());
