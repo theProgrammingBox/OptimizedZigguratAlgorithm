@@ -76,11 +76,11 @@ float randomNormal(uint32_t& seed, const uint32_t kn[128], const float fn[128], 
         seed = (seed ^ (seed << 13));
         seed = (seed ^ (seed >> 17));
         seed = (seed ^ (seed << 5));
-        /*randomInt = -6281210 * uint32_t(x * x) + 0x3f800000;
+        randomInt = -6281210 * uint32_t(x * x) + 0x3f800000;
         if (fn[sevenBits] + (tempSeed + seed) * 2.32830643654e-10f * (fn[sevenBits - 1] - fn[sevenBits]) < *(float*)&randomInt)
-            return x;*/
-        if (fn[sevenBits] + (tempSeed + seed) * 2.32830643654e-10f * (fn[sevenBits - 1] - fn[sevenBits]) < exp(-0.5f * x * x))
             return x;
+        /*if (fn[sevenBits] + (tempSeed + seed) * 2.32830643654e-10f * (fn[sevenBits - 1] - fn[sevenBits]) < exp(-0.5f * x * x))
+            return x;*/
     }
 }
 
@@ -94,12 +94,15 @@ int main()
     randomNormalSetup(kn, fn, wn);
 
     const uint32_t bins = 42;
-    const uint32_t samples = 1000000;
+    const uint32_t samples = 100000000;
     const float scale = 1000.0f / samples;
     const float min = -3.0f;
     const float max = 3.0f;
     const float bin_width = (max - min) / bins;
 
+	// start timer
+	auto start = std::chrono::high_resolution_clock::now();
+    
     uint32_t hist[bins];
     memset(hist, 0, sizeof(hist));
     for (uint32_t i = 0; i < samples; i++)
@@ -108,6 +111,11 @@ int main()
         if (bin < bins && bin >= 0)
             hist[bin]++;
     }
+    
+	// stop timer
+	auto stop = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+	printf("Time taken by function: %lld microseconds\n", duration.count());
 
     printf("----------------------------------------\n");
     for (uint32_t i = 0; i < bins; i++)
