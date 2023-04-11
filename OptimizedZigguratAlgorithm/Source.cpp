@@ -214,7 +214,7 @@ float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128], flo
         *jsr = (*jsr ^ (*jsr << 5));
         y = (temp + *jsr) * 2.3283064365386963e-10f * (fn[iz - 1] - fn[iz]) + fn[iz];
         x = wn[iz] * hz;
-        temp = (-6650060 + *bias) * x * x + 0x3f800000;
+        temp = *bias * x * x + 0x3f800000;
 		*err += exp(-0.5f * x * x) - *(float*)&temp;
 		//printf("x:%f\n", x);
 		if (y < *(float*)&temp)
@@ -316,19 +316,24 @@ int main()
     printf("Time taken: %f microseconds\n", averageTime / loops);*/
 
     float err;
-    float bias = 0;
-    for (uint32_t i = 1000; i--;)
+    float bias = -6688673;
+    for (uint32_t j = 100; j--;)
     {
         err = 0;
         uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
         for (uint32_t i = samples; i--;)
             r4_nor2(&seed, kn, fn, wn, &err, &bias);
-		printf("Error: %f\n", err * 0.001f);
-		bias += err;
+		printf("Error: %f\n", err / samples * 10000000);
+		//bias += err / samples * 10000000;
     }
+	for (uint32_t i = 0; i < 32; i++)
+	{
+		printf("%d", (kn[0] >> (31 - i)) & 1);
+		if (i == 0 || i == 8)
+			printf(" ");
+	}
+	printf("\n");
 	printf("Bias: %f\n", bias);
-    // -6281210 + *bias
-	printf("Total: %f\n", -6281210.0f + bias);
 
     return 0;
 }
