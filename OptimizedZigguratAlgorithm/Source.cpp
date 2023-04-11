@@ -212,16 +212,10 @@ float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128], dou
         *jsr = (*jsr ^ (*jsr << 13));
         *jsr = (*jsr ^ (*jsr >> 17));
         *jsr = (*jsr ^ (*jsr << 5));
-        y = (temp + *jsr) * 2.3283064365386963e-10f * (fn[iz - 1] - fn[iz]) + fn[iz];
+        y = (temp + *jsr) * 2.3283064365386963e-10f;
         x = wn[iz] * hz;
-        
         temp = 12338043.947595f * (-0.5f * x * x) + 1065101738.388696f;
-		//printf("expected: %f, actual: %f\n", exp(-0.5f * x * x), *(float*)&temp);
-        float res = exp(-0.5f * x * x);
-		*biasGrad += (res - *(float*)&temp);
-		*weightGrad += (res - *(float*)&temp) * (-0.5f * x * x);
-        
-        if (y < *(float*)&temp)
+        if (y * (fn[iz - 1] - fn[iz]) + fn[iz] < *(float*)&temp)
             return x;
 
         temp = *jsr;
@@ -235,48 +229,8 @@ float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128], dou
     }
 }
 
-float InvSqrt(float number, uint32_t& bias, float& weight1, float& weight2, uint32_t& biasGrad, float& weight1Grad, float& weight2Grad)
-{
-    int32_t i = bias - (*(int32_t*)&number >> 1);
-    float tmp = *(float*)&i;
-    float intermediate = weight2 - number * tmp * tmp;
-    float estimate = weight1 * tmp * intermediate;
-    float expected = 1.0f / sqrt(number);
-    float error = expected - estimate;
-    weight1Grad += error * tmp * intermediate;
-    weight2Grad += error * weight1 * tmp;
-}
-
 int main()
 {
-    uint32_t seed1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-    uint32_t tempSeed;
-    float uniformRand;
-
-    uint32_t bias = 1595932665;
-    float weight1 = 0.703952253f;
-    float weight2 = 2.38924456f;
-    uint32_t biasGrad;
-    float weight1Grad;
-    float weight2Grad;
-    for (;;)
-    {
-        biasGrad = 0;
-        weight1Grad = 0;
-        weight2Grad = 0;
-        for (uint32_t i = 10000; i--;)
-        {
-            tempSeed = seed1;
-            seed1 = seed1 ^ (seed1 << 13);
-            seed1 = seed1 ^ (seed1 >> 17);
-            seed1 = seed1 ^ (seed1 << 5);
-            uniformRand = (tempSeed + seed1) * 2.3283064365386963e-10f * 2;
-            InvSqrt(uniformRand, bias, weight1, weight2, biasGrad, weight1Grad, weight2Grad);
-            //printf("invSqrt of %f is %f. an approximation is %f\n", uniformRand, 1.0f / sqrt(uniformRand), InvSqrt(uniformRand, bias, weight1, weight2, biasGrad, weight1Grad, weight2Grad));
-        }
-    }
-    return 0;
-    
     uint32_t kn[128];
     float fn[128];
     float wn[128];
@@ -291,7 +245,7 @@ int main()
     const uint32_t warmups = 20;
     const uint32_t loops = 10;
     const uint32_t bins = 128;
-    const uint32_t samples = 100000;
+    const uint32_t samples = 100000000;
     const float scale = 1000.0f / samples;
     const float min = -6.0f;
     const float max = 6.0f;
@@ -359,22 +313,21 @@ int main()
     }
     printf("Time taken: %f microseconds\n", averageTime / loops);*/
 
-    double weightGrad, biasGrad;
-    double weight = 12338043.947595;
-	double bias = 1065101738.388696;
-    for (;;)
+    for (int32_t i = -300; i <= 300; i++)
     {
-		weightGrad = 0;
-		biasGrad = 0;
-        uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-        for (uint32_t i = samples; i--;)
-			r4_nor2(&seed, kn, fn, wn, &weightGrad, &biasGrad, &weight, &bias);
-        /*printf("Weight Grad: %f\n", weightGrad);
-		printf("Bias Grad: %f\n", biasGrad);*/
-		weight += weightGrad * 0.01f;
-        bias += biasGrad * 0.01f;
-        printf("Weight: %f\n", weight);
-        printf("Bias: %f\n", bias);
+		float x = i * 0.01f;
+        
+        float expVal1 = exp(-0.5f * x * x);
+		uint32_t temp = -6169021.9738f * x * x + 1065101738.388696f;
+		float expVal2 = *(float*)&temp;
+
+		printf("%f\n", expVal1 - expVal2);
+        
+		std::string spaces1(expVal1 * 80, ' ');
+		printf("\t%s*%f\n", spaces1.c_str(), expVal1);
+        
+		std::string spaces2(expVal2 * 80, ' ');
+		printf("\t%s-%f\n", spaces2.c_str(), expVal2);
     }
 
     return 0;
