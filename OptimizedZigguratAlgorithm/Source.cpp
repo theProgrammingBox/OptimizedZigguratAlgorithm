@@ -163,7 +163,7 @@ void r4_nor2_setup(uint32_t kn[128], float fn[128], float wn[128])
     return;
 }
 
-float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128])
+float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128], float* err, float* bias)
 {
     uint32_t temp;
     int32_t hz;
@@ -214,7 +214,8 @@ float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128])
         *jsr = (*jsr ^ (*jsr << 5));
         y = (temp + *jsr) * 2.3283064365386963e-10f * (fn[iz - 1] - fn[iz]) + fn[iz];
         x = wn[iz] * hz;
-        temp = -6281210 * uint32_t(x * x) + 0x3f800000;
+        temp = (-6650060 + *bias) * x * x + 0x3f800000;
+		*err += exp(-0.5f * x * x) - *(float*)&temp;
 		//printf("x:%f\n", x);
 		if (y < *(float*)&temp)
             return x;
@@ -252,7 +253,7 @@ int main()
     const float max = 6.0f;
     const float bin_width = (max - min) / bins;
     
-    uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    /*uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     uint32_t hist[bins];
     memset(hist, 0, sizeof(hist));
     for (uint32_t i = 0; i < samples; i++)
@@ -312,7 +313,22 @@ int main()
         auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
         averageTime += duration.count() * 1e-3f;
     }
-    printf("Time taken: %f microseconds\n", averageTime / loops);
+    printf("Time taken: %f microseconds\n", averageTime / loops);*/
+
+    float err;
+    float bias = 0;
+    for (uint32_t i = 1000; i--;)
+    {
+        err = 0;
+        uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+        for (uint32_t i = samples; i--;)
+            r4_nor2(&seed, kn, fn, wn, &err, &bias);
+		printf("Error: %f\n", err * 0.001f);
+		bias += err;
+    }
+	printf("Bias: %f\n", bias);
+    // -6281210 + *bias
+	printf("Total: %f\n", -6281210.0f + bias);
 
     return 0;
 }
