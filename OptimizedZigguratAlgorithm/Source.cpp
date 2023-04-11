@@ -165,11 +165,16 @@ void r4_nor2_setup(uint32_t kn[128], float fn[128], float wn[128])
 
 float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128])
 {
+    uint32_t temp;
     int32_t hz;
     uint8_t iz;
     float x, y;
 
-    hz = shr3_seeded(jsr);
+    temp = *jsr;
+    *jsr = (*jsr ^ (*jsr << 13));
+    *jsr = (*jsr ^ (*jsr >> 17));
+    *jsr = (*jsr ^ (*jsr << 5));
+	hz = temp + *jsr;
     iz = hz & 127;
     if (hz < int32_t(kn[iz]) && ~hz + 1 < int32_t(kn[iz]))
         return wn[iz] * hz;
@@ -180,22 +185,45 @@ float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128])
         {
             for (;;)
             {
-                x = -0.2904764f * log(r4_uni(jsr));
-                y = -log(r4_uni(jsr));
+                temp = *jsr;
+                *jsr = (*jsr ^ (*jsr << 13));
+                *jsr = (*jsr ^ (*jsr >> 17));
+                *jsr = (*jsr ^ (*jsr << 5));
+                x = (temp + *jsr) * 2.3283064365386963e-10f;
+                x = (*(int32_t*)&x - 0x3f800000) * -2.3935259956e-8f;
+                
+                temp = *jsr;
+                *jsr = (*jsr ^ (*jsr << 13));
+                *jsr = (*jsr ^ (*jsr >> 17));
+                *jsr = (*jsr ^ (*jsr << 5));
+                y = (temp + *jsr) * 2.3283064365386963e-10f;
+                y = (*(int32_t*)&y - 0x3f800000) * -8.24e-8f;
+                
                 if (x * x <= y + y)
                 {
                     x += 3.442620f;
-                    hz = hz & 0x80000000 ^ *(int32_t*)&x;
-                    return *(float*)&hz;
+                    temp = hz & 0x80000000 ^ *(uint32_t*)&x;
+                    return *(float*)&temp;
                 }
             }
         }
 
-        x = wn[iz] * int32_t(hz);
-        if (fn[iz] + r4_uni(jsr) * (fn[iz - 1] - fn[iz]) < exp(-0.5f * x * x))
+        temp = *jsr;
+        *jsr = (*jsr ^ (*jsr << 13));
+        *jsr = (*jsr ^ (*jsr >> 17));
+        *jsr = (*jsr ^ (*jsr << 5));
+        y = (temp + *jsr) * 2.3283064365386963e-10f * (fn[iz - 1] - fn[iz]) + fn[iz];
+        x = wn[iz] * hz;
+        temp = -6281210 * uint32_t(x * x) + 0x3f800000;
+		//printf("x:%f\n", x);
+		if (y < *(float*)&temp)
             return x;
 
-        hz = shr3_seeded(jsr);
+        temp = *jsr;
+        *jsr = (*jsr ^ (*jsr << 13));
+        *jsr = (*jsr ^ (*jsr >> 17));
+        *jsr = (*jsr ^ (*jsr << 5));
+        hz = temp + *jsr;
         iz = hz & 127;
         if (hz < int32_t(kn[iz]) && ~hz + 1 < int32_t(kn[iz]))
             return wn[iz] * hz;
@@ -223,39 +251,6 @@ int main()
     const float min = -6.0f;
     const float max = 6.0f;
     const float bin_width = (max - min) / bins;
-    
-    for (uint32_t j = warmups; j--;)
-    {
-        uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-        for (uint32_t i = samples; i--;)
-            r4_nor(&seed, kn, fn, wn);
-    }
-
-	float averageTime = 0.0f;
-    for (uint32_t j = loops; j--;)
-    {
-        uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-        auto start = std::chrono::high_resolution_clock::now();
-        for (uint32_t i = samples; i--;)
-            r4_nor(&seed, kn, fn, wn);
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-        averageTime += duration.count() * 1e-3f;
-    }
-	printf("Time taken: %f microseconds\n", averageTime / loops);
-
-    averageTime = 0.0f;
-	for (uint32_t j = loops; j--;)
-	{
-		uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-		auto start = std::chrono::high_resolution_clock::now();
-		for (uint32_t i = samples; i--;)
-			r4_nor2(&seed, kn2, fn2, wn2);
-		auto stop = std::chrono::high_resolution_clock::now();
-		auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-		averageTime += duration.count() * 1e-3f;
-	}
-	printf("Time taken: %f microseconds\n", averageTime / loops);
     
     uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     uint32_t hist[bins];
@@ -285,6 +280,39 @@ int main()
 		spaces = std::string(scale * hist2[i], ' ');
 		printf("\t%s*%f\n", spaces.c_str(), scale * hist2[i]);
     }
+
+    for (uint32_t j = warmups; j--;)
+    {
+        uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+        for (uint32_t i = samples; i--;)
+            r4_nor(&seed, kn, fn, wn);
+    }
+
+    float averageTime = 0.0f;
+    for (uint32_t j = loops; j--;)
+    {
+        uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+        auto start = std::chrono::high_resolution_clock::now();
+        for (uint32_t i = samples; i--;)
+            r4_nor(&seed, kn, fn, wn);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        averageTime += duration.count() * 1e-3f;
+    }
+    printf("Time taken: %f microseconds\n", averageTime / loops);
+
+    averageTime = 0.0f;
+    for (uint32_t j = loops; j--;)
+    {
+        uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+        auto start = std::chrono::high_resolution_clock::now();
+        for (uint32_t i = samples; i--;)
+            r4_nor2(&seed, kn2, fn2, wn2);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        averageTime += duration.count() * 1e-3f;
+    }
+    printf("Time taken: %f microseconds\n", averageTime / loops);
 
     return 0;
 }
