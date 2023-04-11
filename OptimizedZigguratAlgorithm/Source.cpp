@@ -235,29 +235,47 @@ float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128], dou
     }
 }
 
-float InvSqrt(float number)
+float InvSqrt(float number, uint32_t& bias, float& weight1, float& weight2, uint32_t& biasGrad, float& weight1Grad, float& weight2Grad)
 {
-    long i = 0x5F1FFFF9 - (*(long*)&number >> 1);
+    int32_t i = bias - (*(int32_t*)&number >> 1);
     float tmp = *(float*)&i;
-    return tmp * 0.703952253f * (2.38924456f - number * tmp * tmp);
+    float intermediate = weight2 - number * tmp * tmp;
+    float estimate = weight1 * tmp * intermediate;
+    float expected = 1.0f / sqrt(number);
+    float error = expected - estimate;
+    weight1Grad += error * tmp * intermediate;
+    weight2Grad += error * weight1 * tmp;
 }
 
 int main()
 {
-    /*uint32_t seed1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    uint32_t seed1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     uint32_t tempSeed;
     float uniformRand;
-    for (uint32_t i = 40; i--;)
+
+    uint32_t bias = 1595932665;
+    float weight1 = 0.703952253f;
+    float weight2 = 2.38924456f;
+    uint32_t biasGrad;
+    float weight1Grad;
+    float weight2Grad;
+    for (;;)
     {
-		tempSeed = seed1;
-		seed1 = seed1 ^ (seed1 << 13);
-		seed1 = seed1 ^ (seed1 >> 17);
-		seed1 = seed1 ^ (seed1 << 5);
-		uniformRand = (tempSeed + seed1) * 2.3283064365386963e-10f * 2 - 1;
-        tempSeed = 12338084.563634f * uniformRand + 1065101642.533682f;
-		printf("exp of %f is %f. an approximation is %f\n", uniformRand, exp(uniformRand), *(float*)&tempSeed);
+        biasGrad = 0;
+        weight1Grad = 0;
+        weight2Grad = 0;
+        for (uint32_t i = 10000; i--;)
+        {
+            tempSeed = seed1;
+            seed1 = seed1 ^ (seed1 << 13);
+            seed1 = seed1 ^ (seed1 >> 17);
+            seed1 = seed1 ^ (seed1 << 5);
+            uniformRand = (tempSeed + seed1) * 2.3283064365386963e-10f * 2;
+            InvSqrt(uniformRand, bias, weight1, weight2, biasGrad, weight1Grad, weight2Grad);
+            //printf("invSqrt of %f is %f. an approximation is %f\n", uniformRand, 1.0f / sqrt(uniformRand), InvSqrt(uniformRand, bias, weight1, weight2, biasGrad, weight1Grad, weight2Grad));
+        }
     }
-    return 0;*/
+    return 0;
     
     uint32_t kn[128];
     float fn[128];
