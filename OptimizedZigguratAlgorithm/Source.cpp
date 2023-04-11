@@ -163,7 +163,7 @@ void r4_nor2_setup(uint32_t kn[128], float fn[128], float wn[128])
     return;
 }
 
-float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128], float* err, float* bias)
+float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128], double* weightGrad = 0, double* biasGrad = 0, double* weight = 0, double* bias = 0)
 {
     uint32_t temp;
     int32_t hz;
@@ -214,10 +214,14 @@ float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128], flo
         *jsr = (*jsr ^ (*jsr << 5));
         y = (temp + *jsr) * 2.3283064365386963e-10f * (fn[iz - 1] - fn[iz]) + fn[iz];
         x = wn[iz] * hz;
-        temp = *bias * x * x + 0x3f800000;
-		*err += exp(-0.5f * x * x) - *(float*)&temp;
-		//printf("x:%f\n", x);
-		if (y < *(float*)&temp)
+        
+        temp = int32_t(12338084.563634f * (-0.5f * x * x)) + 1065101642.533682f;
+		//printf("expected: %f, actual: %f\n", exp(-0.5f * x * x), *(float*)&temp);
+        //float res = exp(-0.5f * x * x);
+		//*biasGrad += (res - *(float*)&temp);
+		//*weightGrad += (res - *(float*)&temp) * (-0.5f * x * x);
+        
+        if (y < *(float*)&temp)
             return x;
 
         temp = *jsr;
@@ -231,8 +235,30 @@ float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128], flo
     }
 }
 
+float InvSqrt(float number)
+{
+    long i = 0x5F1FFFF9 - (*(long*)&number >> 1);
+    float tmp = *(float*)&i;
+    return tmp * 0.703952253f * (2.38924456f - number * tmp * tmp);
+}
+
 int main()
 {
+    /*uint32_t seed1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    uint32_t tempSeed;
+    float uniformRand;
+    for (uint32_t i = 40; i--;)
+    {
+		tempSeed = seed1;
+		seed1 = seed1 ^ (seed1 << 13);
+		seed1 = seed1 ^ (seed1 >> 17);
+		seed1 = seed1 ^ (seed1 << 5);
+		uniformRand = (tempSeed + seed1) * 2.3283064365386963e-10f * 2 - 1;
+        tempSeed = int32_t(12338084.563634f * uniformRand) + 1065101642.533682f;
+		printf("exp of %f is %f. an approximation is %f\n", uniformRand, exp(uniformRand), *(float*)&tempSeed);
+    }
+    return 0;*/
+    
     uint32_t kn[128];
     float fn[128];
     float wn[128];
@@ -247,13 +273,13 @@ int main()
     const uint32_t warmups = 20;
     const uint32_t loops = 10;
     const uint32_t bins = 128;
-    const uint32_t samples = 40000000;
+    const uint32_t samples = 100000000;
     const float scale = 1000.0f / samples;
     const float min = -6.0f;
     const float max = 6.0f;
     const float bin_width = (max - min) / bins;
     
-    /*uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     uint32_t hist[bins];
     memset(hist, 0, sizeof(hist));
     for (uint32_t i = 0; i < samples; i++)
@@ -313,27 +339,25 @@ int main()
         auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
         averageTime += duration.count() * 1e-3f;
     }
-    printf("Time taken: %f microseconds\n", averageTime / loops);*/
+    printf("Time taken: %f microseconds\n", averageTime / loops);
 
-    float err;
-    float bias = -6688673;
-    for (uint32_t j = 100; j--;)
+    /*double weightGrad, biasGrad;
+    double weight = 12338084.563634;
+	double bias = 1065101642.533682;
+    for (;;)
     {
-        err = 0;
+		weightGrad = 0;
+		biasGrad = 0;
         uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
         for (uint32_t i = samples; i--;)
-            r4_nor2(&seed, kn, fn, wn, &err, &bias);
-		printf("Error: %f\n", err / samples * 10000000);
-		//bias += err / samples * 10000000;
-    }
-	for (uint32_t i = 0; i < 32; i++)
-	{
-		printf("%d", (kn[0] >> (31 - i)) & 1);
-		if (i == 0 || i == 8)
-			printf(" ");
-	}
-	printf("\n");
-	printf("Bias: %f\n", bias);
+			r4_nor2(&seed, kn, fn, wn, &weightGrad, &biasGrad, &weight, &bias);
+        printf("Weight Grad: %f\n", weightGrad);
+		printf("Bias Grad: %f\n", biasGrad);
+		weight += weightGrad * 0.01f;
+        bias += biasGrad * 0.01f;
+        printf("Weight: %f\n", weight);
+        printf("Bias: %f\n", bias);
+    }*/
 
     return 0;
 }
