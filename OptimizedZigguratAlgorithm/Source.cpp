@@ -163,7 +163,7 @@ void r4_nor2_setup(uint32_t kn[128], float fn[128], float wn[128])
     return;
 }
 
-float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128], double* weightGrad = 0, double* biasGrad = 0, double* weight = 0, double* bias = 0)
+float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128])
 {
     uint32_t temp;
     int32_t hz;
@@ -214,7 +214,7 @@ float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128], dou
         *jsr = (*jsr ^ (*jsr << 5));
         y = (temp + *jsr) * 2.3283064365386963e-10f;
         x = wn[iz] * hz;
-        temp = 12338043.947595f * (-0.5f * x * x) + 1065101738.388696f;
+        temp = -6169045.423972f * x * x + 1065101626.864132f;
         if (y * (fn[iz - 1] - fn[iz]) + fn[iz] < *(float*)&temp)
             return x;
 
@@ -251,7 +251,7 @@ int main()
     const float max = 6.0f;
     const float bin_width = (max - min) / bins;
     
-    /*uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     uint32_t hist[bins];
     memset(hist, 0, sizeof(hist));
     for (uint32_t i = 0; i < samples; i++)
@@ -273,7 +273,7 @@ int main()
     
     for (uint32_t i = 0; i < bins; i++)
     {
-        printf("%f\n", fabs(scale * hist[i] - scale * hist2[i]));
+        printf("%f\%%%\n", (1.0f - float(hist2[i]) / hist[i]) * 100.0f);
         std::string spaces(scale * hist[i], ' ');
         printf("\t%s*%f\n", spaces.c_str(), scale * hist[i]);
 		spaces = std::string(scale * hist2[i], ' ');
@@ -311,24 +311,7 @@ int main()
         auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
         averageTime += duration.count() * 1e-3f;
     }
-    printf("Time taken: %f microseconds\n", averageTime / loops);*/
-
-    for (int32_t i = -300; i <= 300; i++)
-    {
-		float x = i * 0.01f;
-        
-        float expVal1 = exp(-0.5f * x * x);
-		uint32_t temp = -6169021.9738f * x * x + 1065101738.388696f;
-		float expVal2 = *(float*)&temp;
-
-		printf("%f\n", expVal1 - expVal2);
-        
-		std::string spaces1(expVal1 * 80, ' ');
-		printf("\t%s*%f\n", spaces1.c_str(), expVal1);
-        
-		std::string spaces2(expVal2 * 80, ' ');
-		printf("\t%s-%f\n", spaces2.c_str(), expVal2);
-    }
+    printf("Time taken: %f microseconds\n", averageTime / loops);
 
     return 0;
 }
