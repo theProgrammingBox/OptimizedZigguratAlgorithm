@@ -215,11 +215,11 @@ float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128], dou
         y = (temp + *jsr) * 2.3283064365386963e-10f * (fn[iz - 1] - fn[iz]) + fn[iz];
         x = wn[iz] * hz;
         
-        temp = int32_t(12338084.563634f * (-0.5f * x * x)) + 1065101642.533682f;
+        temp = 12338043.947595f * (-0.5f * x * x) + 1065101738.388696f;
 		//printf("expected: %f, actual: %f\n", exp(-0.5f * x * x), *(float*)&temp);
-        //float res = exp(-0.5f * x * x);
-		//*biasGrad += (res - *(float*)&temp);
-		//*weightGrad += (res - *(float*)&temp) * (-0.5f * x * x);
+        float res = exp(-0.5f * x * x);
+		*biasGrad += (res - *(float*)&temp);
+		*weightGrad += (res - *(float*)&temp) * (-0.5f * x * x);
         
         if (y < *(float*)&temp)
             return x;
@@ -254,7 +254,7 @@ int main()
 		seed1 = seed1 ^ (seed1 >> 17);
 		seed1 = seed1 ^ (seed1 << 5);
 		uniformRand = (tempSeed + seed1) * 2.3283064365386963e-10f * 2 - 1;
-        tempSeed = int32_t(12338084.563634f * uniformRand) + 1065101642.533682f;
+        tempSeed = 12338084.563634f * uniformRand + 1065101642.533682f;
 		printf("exp of %f is %f. an approximation is %f\n", uniformRand, exp(uniformRand), *(float*)&tempSeed);
     }
     return 0;*/
@@ -273,13 +273,13 @@ int main()
     const uint32_t warmups = 20;
     const uint32_t loops = 10;
     const uint32_t bins = 128;
-    const uint32_t samples = 100000000;
+    const uint32_t samples = 100000;
     const float scale = 1000.0f / samples;
     const float min = -6.0f;
     const float max = 6.0f;
     const float bin_width = (max - min) / bins;
     
-    uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    /*uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     uint32_t hist[bins];
     memset(hist, 0, sizeof(hist));
     for (uint32_t i = 0; i < samples; i++)
@@ -339,11 +339,11 @@ int main()
         auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
         averageTime += duration.count() * 1e-3f;
     }
-    printf("Time taken: %f microseconds\n", averageTime / loops);
+    printf("Time taken: %f microseconds\n", averageTime / loops);*/
 
-    /*double weightGrad, biasGrad;
-    double weight = 12338084.563634;
-	double bias = 1065101642.533682;
+    double weightGrad, biasGrad;
+    double weight = 12338043.947595;
+	double bias = 1065101738.388696;
     for (;;)
     {
 		weightGrad = 0;
@@ -351,13 +351,13 @@ int main()
         uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
         for (uint32_t i = samples; i--;)
 			r4_nor2(&seed, kn, fn, wn, &weightGrad, &biasGrad, &weight, &bias);
-        printf("Weight Grad: %f\n", weightGrad);
-		printf("Bias Grad: %f\n", biasGrad);
+        /*printf("Weight Grad: %f\n", weightGrad);
+		printf("Bias Grad: %f\n", biasGrad);*/
 		weight += weightGrad * 0.01f;
         bias += biasGrad * 0.01f;
         printf("Weight: %f\n", weight);
         printf("Bias: %f\n", bias);
-    }*/
+    }
 
     return 0;
 }
