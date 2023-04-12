@@ -253,6 +253,7 @@ int main()
     const float max = 6.0f;
     const float bin_width = (max - min) / bins;
 
+    /*
     uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     uint32_t hist[bins];
     memset(hist, 0, sizeof(hist));
@@ -280,8 +281,8 @@ int main()
         printf("\t%s*%f\n", spaces.c_str(), scale * hist[i]);
         spaces = std::string(scale * hist2[i], ' ');
         printf("\t%s*%f\n", spaces.c_str(), scale * hist2[i]);
-        /*std::string spaces = std::string(scale * hist2[i] * 3, ' ');
-        printf("%s*\n", spaces.c_str());*/
+        //std::string spaces = std::string(scale * hist2[i] * 3, ' ');
+        //printf("%s*\n", spaces.c_str());
     }
 
     for (uint32_t j = warmups; j--;)
@@ -316,6 +317,7 @@ int main()
         averageTime += duration.count() * 1e-3f;
     }
     printf("Time taken: %f microseconds\n", averageTime / loops);
+    */
     
     /*float a = 0.2904764 / 12583985.0;
     for (uint32_t i = 0; i < 32; i++)
@@ -327,21 +329,32 @@ int main()
     printf("\n");*/
     //2.30830217163e-08
 
-    /*float averageError1 = 0;
+    float averageError1 = 0;
     float averageError2 = 0;
     for (int32_t i = 1; i <= 1000; i++)
     {
         float x = i * 0.001f;
 
-        float expVal1 = -0.2904764 * log(x);
-        float expVal2 = (1065353216 - *(int32_t*)&x) * 2.30830217163e-08;
-        float expVal3 = (1065101626.864132f - *(int32_t*)&x) * 8.1049816566e-8f;
+        float expVal1 = -log(x);
+        float expVal2 = (0x3f800000 - *(int32_t*)&x) * 7.94660834913e-08f;
+        float expVal3 = (0x3f800000 - *(int32_t*)&x) * 8.24e-8f;
 
         averageError1 += expVal1 - expVal2;
         averageError2 += expVal1 - expVal3;
+
+        printf("%f\n", expVal1 - expVal3);
+
+        std::string spaces1(expVal1, ' ');
+        printf("\t%s%f\n", spaces1.c_str(), expVal1);
+
+        /*std::string spaces2(expVal2, ' ');
+        printf("\t%s-%f\n", spaces2.c_str(), expVal2);*/
+
+        std::string spaces3(expVal3, ' ');
+        printf("\t%s%f\n", spaces3.c_str(), expVal3);
     }
     printf("averageError1: %f\n", averageError1 * 0.01);
-    printf("averageError2: %f\n", averageError2 * 0.01);*/
+    printf("averageError2: %f\n", averageError2 * 0.01);
 
     return 0;
 }
