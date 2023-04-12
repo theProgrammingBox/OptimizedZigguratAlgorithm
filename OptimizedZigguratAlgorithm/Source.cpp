@@ -185,18 +185,14 @@ float r4_nor2(uint32_t* jsr, int32_t kn[128], float fn[128], float wn[128])
                 *jsr = (*jsr ^ (*jsr >> 17));
                 *jsr = (*jsr ^ (*jsr << 5));
                 x = (uint32Temp + *jsr) * 2.3283064365386963e-10f;
-                //y = (1065353216 - *(int32_t*)&y) * 2.30830217163e-08f;
-                x = (*(int32_t*)&x - 0x3f800000) * -2.3935259956e-8f;
-                //x = -0.2904764 * log(x);
+                x = (1065353216 - *(int32_t*)&x) * 2.30830217163e-08f;
                 
                 uint32Temp = *jsr;
                 *jsr = (*jsr ^ (*jsr << 13));
                 *jsr = (*jsr ^ (*jsr >> 17));
                 *jsr = (*jsr ^ (*jsr << 5));
                 y = (uint32Temp + *jsr) * 2.3283064365386963e-10f;
-                //y = (1065353216 - *(int32_t*)&y) * 7.94660834913e-08f;
-                y = (*(int32_t*)&y - 0x3f800000) * -8.24e-8f;
-                //y = -log(y);
+                y = (1065353216 - *(int32_t*)&y) * 7.94660834913e-08f;
                 
                 if (x * x <= y + y)
                 {
@@ -253,7 +249,7 @@ int main()
     const float max = 6.0f;
     const float bin_width = (max - min) / bins;
 
-    /*
+    /**/
     uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     uint32_t hist[bins];
     memset(hist, 0, sizeof(hist));
@@ -317,7 +313,7 @@ int main()
         averageTime += duration.count() * 1e-3f;
     }
     printf("Time taken: %f microseconds\n", averageTime / loops);
-    */
+    /**/
     
     /*float a = 0.2904764 / 12583985.0;
     for (uint32_t i = 0; i < 32; i++)
@@ -329,7 +325,7 @@ int main()
     printf("\n");*/
     //2.30830217163e-08
 
-    float averageError1 = 0;
+    /*float averageError1 = 0;
     float averageError2 = 0;
     for (int32_t i = 1; i <= 1000; i++)
     {
@@ -347,14 +343,14 @@ int main()
         std::string spaces1(expVal1, ' ');
         printf("\t%s%f\n", spaces1.c_str(), expVal1);
 
-        /*std::string spaces2(expVal2, ' ');
-        printf("\t%s-%f\n", spaces2.c_str(), expVal2);*/
+        std::string spaces2(expVal2, ' ');
+        printf("\t%s-%f\n", spaces2.c_str(), expVal2);
 
         std::string spaces3(expVal3, ' ');
         printf("\t%s%f\n", spaces3.c_str(), expVal3);
     }
     printf("averageError1: %f\n", averageError1 * 0.01);
-    printf("averageError2: %f\n", averageError2 * 0.01);
+    printf("averageError2: %f\n", averageError2 * 0.01);*/
 
     return 0;
 }
