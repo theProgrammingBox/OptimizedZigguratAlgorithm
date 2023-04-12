@@ -158,7 +158,7 @@ void r4_nor2_setup(int32_t kn[128], float fn[128], float wn[128])
     return;
 }
 
-float r4_nor2(uint32_t* jsr, int32_t kn[128], float fn[128], float wn[128])
+float r4_nor2(uint32_t* jsr, const int32_t kn[128], const float fn[128], const float wn[128])
 {
     uint32_t uint32Temp;
     int32_t int32Seed;
