@@ -67,25 +67,25 @@ float r4_uni(uint32_t* jsr)
 
 float r4_nor(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128])
 {
-    int hz;
-    uint32_t iz;
+    int int32Seed;
+    uint32_t int8Seed;
     const float r = 3.442620;
     float value;
     float x;
     float y;
 
-    hz = (int)shr3_seeded(jsr);
-    iz = (hz & 127);
+    int32Seed = (int)shr3_seeded(jsr);
+    int8Seed = (int32Seed & 127);
 
-    if (fabs(hz) < kn[iz])
+    if (fabs(int32Seed) < kn[int8Seed])
     {
-        value = (float)(hz)*wn[iz];
+        value = (float)(int32Seed)*wn[int8Seed];
     }
     else
     {
         for (; ; )
         {
-            if (iz == 0)
+            if (int8Seed == 0)
             {
                 for (; ; )
                 {
@@ -97,7 +97,7 @@ float r4_nor(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128])
                     }
                 }
 
-                if (hz <= 0)
+                if (int32Seed <= 0)
                 {
                     value = -r - x;
                 }
@@ -108,21 +108,21 @@ float r4_nor(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128])
                 break;
             }
 
-            x = (float)(hz)*wn[iz];
+            x = (float)(int32Seed)*wn[int8Seed];
 
-            if (fn[iz] + r4_uni(jsr) * (fn[iz - 1] - fn[iz])
+            if (fn[int8Seed] + r4_uni(jsr) * (fn[int8Seed - 1] - fn[int8Seed])
                 < exp(-0.5 * x * x))
             {
                 value = x;
                 break;
             }
 
-            hz = (int)shr3_seeded(jsr);
-            iz = (hz & 127);
+            int32Seed = (int)shr3_seeded(jsr);
+            int8Seed = (int32Seed & 127);
 
-            if (fabs(hz) < kn[iz])
+            if (fabs(int32Seed) < kn[int8Seed])
             {
-                value = (float)(hz)*wn[iz];
+                value = (float)(int32Seed)*wn[int8Seed];
                 break;
             }
         }
@@ -131,101 +131,100 @@ float r4_nor(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128])
     return value;
 }
 
-void r4_nor2_setup(uint32_t kn[128], float fn[128], float wn[128])
+void r4_nor2_setup(int32_t kn[128], float fn[128], float wn[128])
 {
     double dn = 3.442619855899;
-    int i;
     const double m1 = 2147483648.0;
-    double q;
-    double tn = 3.442619855899;
     const double vn = 9.91256303526217E-03;
+    double q = vn / exp(-0.5 * dn * dn);
 
-    q = vn / exp(-0.5 * dn * dn);
-
-    kn[0] = (uint32_t)((dn / q) * m1);
+    kn[0] = dn / q * m1;
     kn[1] = 0;
-
-    wn[0] = (float)(q / m1);
-    wn[127] = (float)(dn / m1);
-
+    wn[0] = q / m1;
+    wn[127] = dn / m1;
     fn[0] = 1.0;
-    fn[127] = (float)(exp(-0.5 * dn * dn));
+    fn[127] = exp(-0.5 * dn * dn);
 
-    for (i = 126; 1 <= i; i--)
+    double tn;
+    for (uint8_t i = 126; 1 <= i; i--)
     {
-        dn = sqrt(-2.0 * log(vn / dn + exp(-0.5 * dn * dn)));
-        kn[i + 1] = (uint32_t)((dn / tn) * m1);
         tn = dn;
-        fn[i] = (float)(exp(-0.5 * dn * dn));
-        wn[i] = (float)(dn / m1);
+        dn = sqrt(-2.0 * log(vn / dn + exp(-0.5 * dn * dn)));
+        kn[i + 1] = dn / tn * m1;
+        fn[i] = exp(-0.5 * dn * dn);
+        wn[i] = dn / m1;
     }
 
     return;
 }
 
-float r4_nor2(uint32_t* jsr, uint32_t kn[128], float fn[128], float wn[128])
+float r4_nor2(uint32_t* jsr, int32_t kn[128], float fn[128], float wn[128])
 {
-    uint32_t temp;
-    int32_t hz;
-    uint8_t iz;
+    uint32_t uint32Temp;
+    int32_t int32Seed;
+    uint8_t int8Seed;
     float x, y;
 
-    temp = *jsr;
+    uint32Temp = *jsr;
     *jsr = (*jsr ^ (*jsr << 13));
     *jsr = (*jsr ^ (*jsr >> 17));
     *jsr = (*jsr ^ (*jsr << 5));
-	hz = temp + *jsr;
-    iz = hz & 127;
-    if (hz < int32_t(kn[iz]) && ~hz + 1 < int32_t(kn[iz]))
-        return wn[iz] * hz;
+	int32Seed = uint32Temp + *jsr;
+    int8Seed = int32Seed & 127;
+    if (int32Seed < kn[int8Seed] && ~int32Seed + 1 < kn[int8Seed])
+        return wn[int8Seed] * int32Seed;
     
     for (;;)
     {
-        if (iz == 0)
+        if (int8Seed == 0)
         {
             for (;;)
             {
-                temp = *jsr;
+                uint32Temp = *jsr;
                 *jsr = (*jsr ^ (*jsr << 13));
                 *jsr = (*jsr ^ (*jsr >> 17));
                 *jsr = (*jsr ^ (*jsr << 5));
-                x = (temp + *jsr) * 2.3283064365386963e-10f;
-                x = (*(int32_t*)&x - 0x3f800000) * -2.3935259956e-8f;
+                x = (uint32Temp + *jsr) * 2.3283064365386963e-10f;
+                //x = (*(int32_t*)&x - 1065101626.864132f) / (12338090.8479f * -0.2904764);
+                x = -0.2904764 * log(x);
                 
-                temp = *jsr;
+                uint32Temp = *jsr;
                 *jsr = (*jsr ^ (*jsr << 13));
                 *jsr = (*jsr ^ (*jsr >> 17));
                 *jsr = (*jsr ^ (*jsr << 5));
-                y = (temp + *jsr) * 2.3283064365386963e-10f;
-                y = (*(int32_t*)&y - 0x3f800000) * -8.24e-8f;
+                y = (uint32Temp + *jsr) * 2.3283064365386963e-10f;
+                //y = (*(int32_t*)&y - 1065101626.864132f) / -12338090.8479f;
+                y = -log(y);
                 
                 if (x * x <= y + y)
                 {
                     x += 3.442620f;
-                    temp = hz & 0x80000000 ^ *(uint32_t*)&x;
-                    return *(float*)&temp;
+                    uint32Temp = int32Seed & 0x80000000 ^ *(uint32_t*)&x;
+                    return *(float*)&uint32Temp;
                 }
             }
         }
 
-        temp = *jsr;
+        uint32Temp = *jsr;
         *jsr = (*jsr ^ (*jsr << 13));
         *jsr = (*jsr ^ (*jsr >> 17));
         *jsr = (*jsr ^ (*jsr << 5));
-        y = (temp + *jsr) * 2.3283064365386963e-10f;
-        x = wn[iz] * hz;
-        temp = -6169045.423972f * x * x + 1065101626.864132f;
-        if (y * (fn[iz - 1] - fn[iz]) + fn[iz] < *(float*)&temp)
+        y = (uint32Temp + *jsr) * 2.3283064365386963e-10f;
+        x = wn[int8Seed] * int32Seed;
+        /*uint32Temp = -6169045.423972f * x * x + 1065101626.864132f;
+        if (y * (fn[int8Seed - 1] - fn[int8Seed]) + fn[int8Seed] < *(float*)&uint32Temp)
+            return x;*/
+        if (y * (fn[int8Seed - 1] - fn[int8Seed]) + fn[int8Seed] < exp(-0.5 * x * x))
             return x;
 
-        temp = *jsr;
+        uint32Temp = *jsr;
         *jsr = (*jsr ^ (*jsr << 13));
         *jsr = (*jsr ^ (*jsr >> 17));
         *jsr = (*jsr ^ (*jsr << 5));
-        hz = temp + *jsr;
-        iz = hz & 127;
-        if (hz < int32_t(kn[iz]) && ~hz + 1 < int32_t(kn[iz]))
-            return wn[iz] * hz;
+        int32Seed = uint32Temp + *jsr;
+        int8Seed = int32Seed & 127;
+        if (int32Seed < kn[int8Seed] && ~int32Seed + 1 < kn[int8Seed])
+            return wn[int8Seed] * int32Seed;
     }
 }
 
@@ -235,7 +234,7 @@ int main()
     float fn[128];
     float wn[128];
     
-    uint32_t kn2[128];
+    int32_t kn2[128];
     float fn2[128];
     float wn2[128];
     
@@ -245,7 +244,7 @@ int main()
     const uint32_t warmups = 20;
     const uint32_t loops = 10;
     const uint32_t bins = 128;
-    const uint32_t samples = 100000000;
+    const uint32_t samples = 10000000;
     const float scale = 1000.0f / samples;
     const float min = -6.0f;
     const float max = 6.0f;
@@ -276,8 +275,10 @@ int main()
         printf("%f\%%%\n", (1.0f - float(hist2[i]) / hist[i]) * 100.0f);
         std::string spaces(scale * hist[i], ' ');
         printf("\t%s*%f\n", spaces.c_str(), scale * hist[i]);
-		spaces = std::string(scale * hist2[i], ' ');
-		printf("\t%s*%f\n", spaces.c_str(), scale * hist2[i]);
+        spaces = std::string(scale * hist2[i], ' ');
+        printf("\t%s*%f\n", spaces.c_str(), scale * hist2[i]);
+        /*std::string spaces = std::string(scale * hist2[i] * 3, ' ');
+        printf("%s*\n", spaces.c_str());*/
     }
 
     for (uint32_t j = warmups; j--;)
