@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include <chrono>
 
 void r4_nor_setup(uint32_t kn[128], float fn[128], float wn[128])
@@ -185,7 +185,7 @@ float r4_nor2(uint32_t* jsr, int32_t kn[128], float fn[128], float wn[128])
                 *jsr = (*jsr ^ (*jsr >> 17));
                 *jsr = (*jsr ^ (*jsr << 5));
                 x = (uint32Temp + *jsr) * 2.3283064365386963e-10f;
-                //x = (*(int32_t*)&x - 1065101626.864132f) / (12338090.8479f * -0.2904764);
+                //x = (*(int32_t*)&x - 1065101626.864132f) * -2.7902375741e-7f;
                 x = -0.2904764 * log(x);
                 
                 uint32Temp = *jsr;
@@ -193,7 +193,7 @@ float r4_nor2(uint32_t* jsr, int32_t kn[128], float fn[128], float wn[128])
                 *jsr = (*jsr ^ (*jsr >> 17));
                 *jsr = (*jsr ^ (*jsr << 5));
                 y = (uint32Temp + *jsr) * 2.3283064365386963e-10f;
-                //y = (*(int32_t*)&y - 1065101626.864132f) / -12338090.8479f;
+                //y = (*(int32_t*)&y - 1065101626.864132f) * -8.1049816566e-8f;
                 y = -log(y);
                 
                 if (x * x <= y + y)
@@ -233,13 +233,13 @@ int main()
     uint32_t kn[128];
     float fn[128];
     float wn[128];
-    
+
     int32_t kn2[128];
     float fn2[128];
     float wn2[128];
-    
+
     r4_nor_setup(kn, fn, wn);
-	r4_nor2_setup(kn2, fn2, wn2);
+    r4_nor2_setup(kn2, fn2, wn2);
 
     const uint32_t warmups = 20;
     const uint32_t loops = 10;
@@ -249,70 +249,98 @@ int main()
     const float min = -6.0f;
     const float max = 6.0f;
     const float bin_width = (max - min) / bins;
+
+    //   uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    //   uint32_t hist[bins];
+    //   memset(hist, 0, sizeof(hist));
+    //   for (uint32_t i = 0; i < samples; i++)
+    //   {
+    //       uint32_t bin = (r4_nor(&seed, kn, fn, wn) - min) / bin_width;
+    //       if (bin < bins && bin >= 0)
+    //           hist[bin]++;
+    //   }
+
+       //seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+       //uint32_t hist2[bins];
+       //memset(hist2, 0, sizeof(hist2));
+       //for (uint32_t i = 0; i < samples; i++)
+       //{
+       //	uint32_t bin = (r4_nor2(&seed, kn2, fn2, wn2) - min) / bin_width;
+       //	if (bin < bins && bin >= 0)
+       //		hist2[bin]++;
+       //}
+    //   
+    //   for (uint32_t i = 0; i < bins; i++)
+    //   {
+    //       printf("%f\%%%\n", (1.0f - float(hist2[i]) / hist[i]) * 100.0f);
+    //       std::string spaces(scale * hist[i], ' ');
+    //       printf("\t%s*%f\n", spaces.c_str(), scale * hist[i]);
+    //       spaces = std::string(scale * hist2[i], ' ');
+    //       printf("\t%s*%f\n", spaces.c_str(), scale * hist2[i]);
+    //       /*std::string spaces = std::string(scale * hist2[i] * 3, ' ');
+    //       printf("%s*\n", spaces.c_str());*/
+    //   }
+
+    //   for (uint32_t j = warmups; j--;)
+    //   {
+    //       uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    //       for (uint32_t i = samples; i--;)
+    //           r4_nor(&seed, kn, fn, wn);
+    //   }
+
+    //   float averageTime = 0.0f;
+    //   for (uint32_t j = loops; j--;)
+    //   {
+    //       uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    //       auto start = std::chrono::high_resolution_clock::now();
+    //       for (uint32_t i = samples; i--;)
+    //           r4_nor(&seed, kn, fn, wn);
+    //       auto stop = std::chrono::high_resolution_clock::now();
+    //       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    //       averageTime += duration.count() * 1e-3f;
+    //   }
+    //   printf("Time taken: %f microseconds\n", averageTime / loops);
+
+    //   averageTime = 0.0f;
+    //   for (uint32_t j = loops; j--;)
+    //   {
+    //       uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    //       auto start = std::chrono::high_resolution_clock::now();
+    //       for (uint32_t i = samples; i--;)
+    //           r4_nor2(&seed, kn2, fn2, wn2);
+    //       auto stop = std::chrono::high_resolution_clock::now();
+    //       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    //       averageTime += duration.count() * 1e-3f;
+    //   }
+    //   printf("Time taken: %f microseconds\n", averageTime / loops);
     
-    uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-    uint32_t hist[bins];
-    memset(hist, 0, sizeof(hist));
-    for (uint32_t i = 0; i < samples; i++)
+    /*float a = 1.0 / 12583985.0;
+    for (uint32_t i = 0; i < 32; i++)
     {
-        uint32_t bin = (r4_nor(&seed, kn, fn, wn) - min) / bin_width;
-        if (bin < bins && bin >= 0)
-            hist[bin]++;
+        printf("%d", (*(uint32_t*)&a >> (31 - i)) & 1);
+        if (i == 0 || i == 8)
+            printf(" ");
     }
+    printf("\n");*/
 
-	seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-	uint32_t hist2[bins];
-	memset(hist2, 0, sizeof(hist2));
-	for (uint32_t i = 0; i < samples; i++)
-	{
-		uint32_t bin = (r4_nor2(&seed, kn2, fn2, wn2) - min) / bin_width;
-		if (bin < bins && bin >= 0)
-			hist2[bin]++;
-	}
-    
-    for (uint32_t i = 0; i < bins; i++)
+    float averageError = 0;
+    for (int32_t i = 1; i <= 1000; i++)
     {
-        printf("%f\%%%\n", (1.0f - float(hist2[i]) / hist[i]) * 100.0f);
-        std::string spaces(scale * hist[i], ' ');
-        printf("\t%s*%f\n", spaces.c_str(), scale * hist[i]);
-        spaces = std::string(scale * hist2[i], ' ');
-        printf("\t%s*%f\n", spaces.c_str(), scale * hist2[i]);
-        /*std::string spaces = std::string(scale * hist2[i] * 3, ' ');
-        printf("%s*\n", spaces.c_str());*/
-    }
+        float x = i * 0.001f;
 
-    for (uint32_t j = warmups; j--;)
-    {
-        uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-        for (uint32_t i = samples; i--;)
-            r4_nor(&seed, kn, fn, wn);
-    }
+        float expVal1 = -log(x);
+        float expVal2 = (1065353216 - *(int32_t*)&x) * 7.94660834913e-08f;
 
-    float averageTime = 0.0f;
-    for (uint32_t j = loops; j--;)
-    {
-        uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-        auto start = std::chrono::high_resolution_clock::now();
-        for (uint32_t i = samples; i--;)
-            r4_nor(&seed, kn, fn, wn);
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-        averageTime += duration.count() * 1e-3f;
-    }
-    printf("Time taken: %f microseconds\n", averageTime / loops);
+        averageError += expVal1 - expVal2;
+        printf("%f\n", expVal1 - expVal2);
 
-    averageTime = 0.0f;
-    for (uint32_t j = loops; j--;)
-    {
-        uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-        auto start = std::chrono::high_resolution_clock::now();
-        for (uint32_t i = samples; i--;)
-            r4_nor2(&seed, kn2, fn2, wn2);
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-        averageTime += duration.count() * 1e-3f;
+        /*std::string spaces1(expVal1 * 18, ' ');
+        printf("\t%s*%f\n", spaces1.c_str(), expVal1);
+
+        spaces1 = std::string(expVal2 * 18, ' ');
+        printf("\t%s*%f\n", spaces1.c_str(), expVal2);*/
     }
-    printf("Time taken: %f microseconds\n", averageTime / loops);
+    printf("averageError: %f\n", averageError * 0.01);
 
     return 0;
 }
