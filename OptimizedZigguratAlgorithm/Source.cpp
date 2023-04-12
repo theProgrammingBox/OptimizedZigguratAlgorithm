@@ -166,12 +166,12 @@ float r4_nor2(uint32_t* jsr, int32_t kn[128], float fn[128], float wn[128])
     float x, y;
 
     uint32Temp = *jsr;
-    *jsr = (*jsr ^ (*jsr << 13));
-    *jsr = (*jsr ^ (*jsr >> 17));
-    *jsr = (*jsr ^ (*jsr << 5));
+    *jsr ^= *jsr << 13;
+    *jsr ^= *jsr >> 17;
+    *jsr ^= *jsr << 5;
 	int32Seed = uint32Temp + *jsr;
     int8Seed = int32Seed & 127;
-    if (int32Seed < kn[int8Seed] && ~int32Seed + 1 < kn[int8Seed])
+    if ((int32Seed ^ (int32Seed >> 31)) - (int32Seed >> 31) < kn[int8Seed])
         return wn[int8Seed] * int32Seed;
     
     for (;;)
@@ -181,16 +181,16 @@ float r4_nor2(uint32_t* jsr, int32_t kn[128], float fn[128], float wn[128])
             for (;;)
             {
                 uint32Temp = *jsr;
-                *jsr = (*jsr ^ (*jsr << 13));
-                *jsr = (*jsr ^ (*jsr >> 17));
-                *jsr = (*jsr ^ (*jsr << 5));
+                *jsr ^= *jsr << 13;
+                *jsr ^= *jsr >> 17;
+                *jsr ^= *jsr << 5;
                 x = (uint32Temp + *jsr) * 2.3283064365386963e-10f;
                 x = (1065353216 - *(int32_t*)&x) * 2.30830217163e-08f;
                 
                 uint32Temp = *jsr;
-                *jsr = (*jsr ^ (*jsr << 13));
-                *jsr = (*jsr ^ (*jsr >> 17));
-                *jsr = (*jsr ^ (*jsr << 5));
+                *jsr ^= *jsr << 13;
+                *jsr ^= *jsr >> 17;
+                *jsr ^= *jsr << 5;
                 y = (uint32Temp + *jsr) * 2.3283064365386963e-10f;
                 y = (1065353216 - *(int32_t*)&y) * 7.94660834913e-08f;
                 
@@ -204,9 +204,9 @@ float r4_nor2(uint32_t* jsr, int32_t kn[128], float fn[128], float wn[128])
         }
 
         uint32Temp = *jsr;
-        *jsr = (*jsr ^ (*jsr << 13));
-        *jsr = (*jsr ^ (*jsr >> 17));
-        *jsr = (*jsr ^ (*jsr << 5));
+        *jsr ^= *jsr << 13;
+        *jsr ^= *jsr >> 17;
+        *jsr ^= *jsr << 5;
         y = (uint32Temp + *jsr) * 2.3283064365386963e-10f;
         x = wn[int8Seed] * int32Seed;
         uint32Temp = -6169045.423972f * x * x + 1065101626.864132f;
@@ -214,12 +214,12 @@ float r4_nor2(uint32_t* jsr, int32_t kn[128], float fn[128], float wn[128])
             return x;
 
         uint32Temp = *jsr;
-        *jsr = (*jsr ^ (*jsr << 13));
-        *jsr = (*jsr ^ (*jsr >> 17));
-        *jsr = (*jsr ^ (*jsr << 5));
+        *jsr ^= *jsr << 13;
+        *jsr ^= *jsr >> 17;
+        *jsr ^= *jsr << 5;
         int32Seed = uint32Temp + *jsr;
         int8Seed = int32Seed & 127;
-        if (int32Seed < kn[int8Seed] && ~int32Seed + 1 < kn[int8Seed])
+        if ((int32Seed ^ (int32Seed >> 31)) - (int32Seed >> 31) < kn[int8Seed])
             return wn[int8Seed] * int32Seed;
     }
 }
@@ -269,11 +269,13 @@ int main()
 
     for (uint32_t i = 0; i < bins; i++)
     {
-        printf("%f\%%%\n", (1.0f - float(hist2[i]) / hist[i]) * 100.0f);
+        /*printf("%f\%%%\n", (1.0f - float(hist2[i]) / hist[i]) * 100.0f);
         std::string spaces(scale * hist[i], ' ');
         printf("\t%s*%f\n", spaces.c_str(), scale * hist[i]);
         spaces = std::string(scale * hist2[i], ' ');
-        printf("\t%s*%f\n", spaces.c_str(), scale * hist2[i]);
+        printf("\t%s*%f\n", spaces.c_str(), scale * hist2[i]);*/
+        std::string spaces(scale * hist2[i], ' ');
+		printf("%s*\n", spaces.c_str());
     }
 
     for (uint32_t j = warmups; j--;)
@@ -311,7 +313,7 @@ int main()
 	double time2 = averageTime / loops;
 	printf("Time taken: %f microseconds\n", time2);
 
-    printf("Speedup: %f\n", (1 - time2 / time1) * 100);
+    printf("Speedup: %f%%%\n", (1 - time2 / time1) * 100);
 
     return 0;
 }
