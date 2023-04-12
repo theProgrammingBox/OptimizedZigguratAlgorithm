@@ -158,7 +158,7 @@ void r4_nor2_setup(int32_t kn[128], float fn[128], float wn[128])
     return;
 }
 
-float r4_nor2(uint32_t* jsr, int32_t kn[128], float fn[128], float wn[128])
+float r4_nor2(uint32_t* jsr, int32_t kn[128], float fn[128], float wn[128], double* weight = 0, double* bias = 0, double* weightGrad = 0, double* biasGrad = 0, double* err = 0)
 {
     uint32_t uint32Temp;
     int32_t int32Seed;
@@ -212,8 +212,22 @@ float r4_nor2(uint32_t* jsr, int32_t kn[128], float fn[128], float wn[128])
         /*uint32Temp = -6169045.423972f * x * x + 1065101626.864132f;
         if (y * (fn[int8Seed - 1] - fn[int8Seed]) + fn[int8Seed] < *(float*)&uint32Temp)
             return x;*/
-        if (y * (fn[int8Seed - 1] - fn[int8Seed]) + fn[int8Seed] < exp(-0.5 * x * x))
-            return x;
+        /*if (y * (fn[int8Seed - 1] - fn[int8Seed]) + fn[int8Seed] < exp(-0.5 * x * x))
+            return x;*/
+        uint32Temp = *weight * x * x + *bias;
+        float expVal = exp(-0.5 * x * x);
+        float estimate = *(float*)&uint32Temp;
+		bool a = y * (fn[int8Seed - 1] - fn[int8Seed]) + fn[int8Seed] < estimate;
+		bool b = y * (fn[int8Seed - 1] - fn[int8Seed]) + fn[int8Seed] < expVal;
+        if (a != b)
+        {
+			float error = expVal - estimate;
+			*weightGrad += error * x * x;
+			*biasGrad += error;
+            *err += abs(error);
+        }
+        if (b)
+			return x;
 
         uint32Temp = *jsr;
         *jsr = (*jsr ^ (*jsr << 13));
@@ -249,7 +263,27 @@ int main()
     const float max = 6.0f;
     const float bin_width = (max - min) / bins;
 
-    /**/
+    double weight = -6169045.423972;// -6167661.094513;
+    double bias = 1065101626.864132;// 1065077794.755036;
+    double weightGrad, biasGrad, err;
+    uint8_t itr = 0;
+    for (;;)
+    {
+        uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+		weightGrad = 0;
+		biasGrad = 0;
+		err = 0;
+        for (uint32_t i = 0; i < samples; i++)
+			r4_nor2(&seed, kn2, fn2, wn2, &weight, &bias, &weightGrad, &biasGrad, &err);
+        weight += weightGrad * 0.01;
+		bias += biasGrad * 0.01;
+		//printf("weightGrad: %f, biasGrad: %f\n", weightGrad, biasGrad);
+		printf("err: %f\n", err * scale);
+        if (itr++ == 0)
+		    printf("weight: %f, bias: %f\n", weight, bias);
+    }
+
+    /*
     uint32_t seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     uint32_t hist[bins];
     memset(hist, 0, sizeof(hist));
@@ -313,7 +347,7 @@ int main()
         averageTime += duration.count() * 1e-3f;
     }
     printf("Time taken: %f microseconds\n", averageTime / loops);
-    /**/
+    */
     
     /*float a = 0.2904764 / 12583985.0;
     for (uint32_t i = 0; i < 32; i++)
@@ -327,30 +361,33 @@ int main()
 
     /*float averageError1 = 0;
     float averageError2 = 0;
-    for (int32_t i = 1; i <= 1000; i++)
+    for (int32_t i = -200; i <= 200; i++)
     {
-        float x = i * 0.001f;
+        float x = i * 0.01f;
 
-        float expVal1 = -log(x);
-        float expVal2 = (0x3f800000 - *(int32_t*)&x) * 7.94660834913e-08f;
-        float expVal3 = (0x3f800000 - *(int32_t*)&x) * 8.24e-8f;
+        float expVal1 = exp(-0.5 * x * x);
+        uint32_t expVal2Temp = -6169045.423972 * x * x + 1065101626.864132f;
+		float expVal2 = *(float*)&expVal2Temp;
+		uint32_t expVal3Temp = -6291992.5 * x * x + 1065353216;
+		float expVal3 = *(float*)&expVal3Temp;
 
-        averageError1 += expVal1 - expVal2;
-        averageError2 += expVal1 - expVal3;
+        averageError1 += abs(expVal1 - expVal2);
+        averageError2 += abs(expVal1 - expVal3);
 
-        printf("%f\n", expVal1 - expVal3);
+        //printf("%f\n", expVal1 - expVal2);
+        //printf("%f\n", expVal1 - expVal3);
 
-        std::string spaces1(expVal1, ' ');
-        printf("\t%s%f\n", spaces1.c_str(), expVal1);
+        //std::string spaces1(expVal1, ' ');
+        //printf("\t%s%f\n", spaces1.c_str(), expVal1);
 
-        std::string spaces2(expVal2, ' ');
-        printf("\t%s-%f\n", spaces2.c_str(), expVal2);
+        //std::string spaces2(expVal2, ' ');
+        //printf("\t%s-%f\n", spaces2.c_str(), expVal2);
 
-        std::string spaces3(expVal3, ' ');
-        printf("\t%s%f\n", spaces3.c_str(), expVal3);
+        //std::string spaces3(expVal3, ' ');
+        //printf("\t%s%f\n", spaces3.c_str(), expVal3);
     }
-    printf("averageError1: %f\n", averageError1 * 0.01);
-    printf("averageError2: %f\n", averageError2 * 0.01);*/
+    printf("averageError1: %f\n", averageError1 * 0.0025);
+    printf("averageError2: %f\n", averageError2 * 0.0025);*/
 
     return 0;
 }
